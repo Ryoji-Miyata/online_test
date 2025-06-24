@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>実験へようこそ</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f2f5; }
+        .container { text-align: center; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 90%; max-width: 400px; }
+        h2 { margin-top: 0; color: #333; font-size: clamp(24px, 8vw, 32px); }
+        p { color: #666; margin-bottom: 20px; font-size: clamp(16px, 4.5vw, 18px); }
+        .slide { display: none; }
+        .slide.active { display: block; }
+        input[type="text"], select { width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
+        input[type="text"] { ime-mode: inactive; inputmode: "numeric"; } /* 入力モードを数字に */
+        button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 6px; font-size: 18px; cursor: pointer; transition: background-color 0.3s; }
+        button:hover { background-color: #0056b3; }
+        .loader { border: 4px solid #f3f3f3; border-radius: 50%; border-top: 4px solid #3498db; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="slide1" class="slide active">
+            <h2>ようこそ</h2>
+            <p>実験IDを入力してください。(半角数字)</p>
+            <form id="form1">
+                <input type="text" id="experimentId" placeholder="例: 1001" required>
+                <button type="submit">次へ</button>
+            </form>
+        </div>
+        <div id="slide2" class="slide">
+            <h2>調査回数</h2>
+            <p>本日何回目の調査ですか？</p>
+            <form id="form2">
+                <select id="sessionNumber" required>
+                    <option value="" disabled selected>選択してください</option>
+                    <option value="1">1回目</option><option value="2">2回目</option><option value="3">3回目</option>
+                    <option value="4">4回目</option><option value="5">5回目</option><option value="6">6回目</option>
+                </select>
+                <button type="submit">実験を開始する</button>
+            </form>
+        </div>
+        <div id="slide3" class="slide">
+             <h2>準備中</h2>
+             <p>タスクの準備をしています。しばらくお待ちください。</p>
+             <div class="loader"></div>
+        </div>
+    </div>
+
+<script>
+    const slide1 = document.getElementById('slide1');
+    const slide2 = document.getElementById('slide2');
+    const slide3 = document.getElementById('slide3');
+    const form1 = document.getElementById('form1');
+    const form2 = document.getElementById('form2');
+    const experimentIdInput = document.getElementById('experimentId');
+    const sessionNumberSelect = document.getElementById('sessionNumber');
+
+    form1.addEventListener('submit', function(event) {
+        event.preventDefault(); 
+        const experimentId = experimentIdInput.value.trim();
+        
+        // ★★★ 修正点 2/3: 半角数字のみを許可する正規表現に変更 ★★★
+        const validationRegex = /^\d+$/;
+
+        if (validationRegex.test(experimentId)) {
+            sessionStorage.setItem('experimentId', experimentId);
+            slide1.classList.remove('active');
+            slide2.classList.add('active');
+        } else {
+            // ★★★ 修正点 3/3: エラーメッセージを修正 ★★★
+            alert('実験IDは半角数字のみで入力してください。');
+        }
+    });
+
+    form2.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const sessionNumber = sessionNumberSelect.value;
+        if (sessionNumber) {
+            sessionStorage.setItem('sessionNumber', sessionNumber);
+            slide2.classList.remove('active');
+            slide3.classList.add('active');
+            prepareAndStartTasks();
+        } else {
+            alert('調査回数を選択してください。');
+        }
+    });
+
+    function prepareAndStartTasks() {
+        const date = new Date();
+        const timestamp = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}_${date.getHours().toString().padStart(2, '0')}-${date.getMinutes().toString().padStart(2, '0')}`;
+        sessionStorage.setItem('experimentTimestamp', timestamp);
+        
+        const tasks = [
+            'go_nogo_online/go_nogo_online_connected.html',
+            'local_global_online_new/index_new.html',
+            'feelings_questionnaire_online/mood_question_connected.html'
+        ];
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        const shuffledTasks = shuffleArray(tasks);
+
+        sessionStorage.setItem('taskOrder', JSON.stringify(shuffledTasks));
+        sessionStorage.setItem('currentTaskIndex', '0');
+
+        setTimeout(() => {
+            window.location.href = shuffledTasks[0];
+        }, 2000);
+    }
+</script>
+</body>
+</html>

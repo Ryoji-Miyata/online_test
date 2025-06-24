@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Go/No-Go Task</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+  <script src="https://unpkg.com/jspsych@7.3.4"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.3"></script>
+  <script src="https://unpkg.com/@jspsych/plugin-html-button-response@1.1.3"></script>
+  <link href="https://unpkg.com/jspsych@7.3.4/css/jspsych.css" rel="stylesheet" type="text/css" />
+  <style>
+    html, body {
+      height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f0f0f0;
+    }
+    .jspsych-display-element {
+      height: 100%; width: 100%; display: flex; align-items: center; justify-content: center;
+    }
+    .task-stimulus {
+      font-weight: bold; font-size: 25vh;
+    }
+    .jspsych-content {
+      width: 100%; max-width: 800px; text-align: center; font-size: 22px;
+    }
+    .instruction-button {
+      font-size: 20px; padding: 10px 20px; margin-top: 40px;
+    }
+  </style>
+</head>
+<body></body>
+<script>
+
+  // --- 追加 ---
+  // welcome.htmlから渡された実験情報をsessionStorageから取得
+  const experimentId = sessionStorage.getItem('experimentId') || 'unknown_id';
+  const sessionNumber = sessionStorage.getItem('sessionNumber') || 'unknown_session';
+
+  // --- 追加 ---
+  // タスク完了後に次のタスクへ進むための関数
+  function proceedToNextTask() {
+      const taskOrder = JSON.parse(sessionStorage.getItem('taskOrder'));
+      let currentTaskIndex = parseInt(sessionStorage.getItem('currentTaskIndex'), 10);
+
+      if (!taskOrder) {
+        document.querySelector('.jspsych-content p:last-child').textContent = 'このウィンドウを閉じて終了してください。';
+        return;
+      }
+
+      currentTaskIndex++;
+
+      if (currentTaskIndex < taskOrder.length) {
+          sessionStorage.setItem('currentTaskIndex', currentTaskIndex.toString());
+          const nextTaskPath = taskOrder[currentTaskIndex];
+          document.querySelector('.jspsych-content p:last-child').textContent = '次の課題へ進みます...';
+          setTimeout(() => {
+            window.location.href = '../' + nextTaskPath;
+          }, 2000);
+      } else {
+          document.querySelector('.jspsych-content p:last-child').textContent = 'すべての課題が終了しました。このウィンドウを閉じてください。';
+          sessionStorage.clear();
+      }
+  }
+
+  const jsPsych = initJsPsych({
+    on_finish: function() {
+      // --- 変更 ---
+      // 新しい命名規則でファイル名を生成
+      const filename = `${sessionNumber}_${experimentId}_gonogo.csv`;
+      
+      jsPsych.data.get().localSave('csv', filename);
+      
+      document.body.innerHTML = `
+        <div class="jspsych-display-element">
+          <div class="jspsych-content">
+            <h1>お疲れ様でした</h1>
+            <p>データは自動で保存されました。</p>
+            <p style="font-weight: bold; margin-top: 20px;"></p>
+          </div>
+        </div>
+      `;
+      
+      // --- 追加 ---
+      // 次のタスクへの遷移処理を呼び出す
+      proceedToNextTask();
+    }
+  });
+
+  // --- これ以降の課題定義は変更ありません ---
+  let timeline = [];
+  const welcome = { type: jsPsychHtmlButtonResponse, stimulus: `<h1>ようこそgo_nogoタスクへ</h1>`, choices: ['次へ進む'], button_html: '<button class="jspsych-btn instruction-button">%choice%</button>'};
+  const instructions = { type: jsPsychHtmlButtonResponse, stimulus: `<div style="text-align: left; max-width: 90%; margin: auto; line-height: 1.6;"><p>画面中央に数字が表示されたら、<br>できるだけ素早く<strong>画面のどこか</strong>をタップしてください。</p><p style="margin-top: 30px;">ただし、<b style="color: red; font-size: 1.2em;">「３」</b>が表示されたとき<strong style="color: red;">だけ</strong>は、<br>タップしないでください。</p></div>`, choices: ['理解しました'], button_html: '<button class="jspsych-btn instruction-button">%choice%</button>'};
+  const ready = { type: jsPsychHtmlButtonResponse, stimulus: `<h1>準備はよろしいですか？</h1>`, choices: ['課題を開始する'], button_html: '<button class="jspsych-btn instruction-button">%choice%</button>'};
+  const start_task = { type: jsPsychHtmlKeyboardResponse, stimulus: '<p style="font-size: 48px;">スタート</p>', choices: "NO_KEYS", trial_duration: 2000 };
+  const blank_before_task = { type: jsPsychHtmlKeyboardResponse, stimulus: '', choices: "NO_KEYS", trial_duration: 500 };
+  timeline.push(welcome, instructions, ready, start_task, blank_before_task);
+
+  const num_total_trials = 30;
+  const num_nogo_trials = 6;
+  const num_go_trials = num_total_trials - num_nogo_trials;
+  const go_stimuli_options = [0, 1, 2, 4, 5, 6, 7, 8, 9];
+  const nogo_stimulus = 3;
+
+  let timeline_variables = [];
+  for(let i = 0; i < num_nogo_trials; i++){ timeline_variables.push({ stimulus_content: nogo_stimulus, stimulus_type: 'target' }); }
+  for(let i = 0; i < num_go_trials; i++){ const stim = jsPsych.randomization.sampleWithoutReplacement(go_stimuli_options, 1)[0]; timeline_variables.push({ stimulus_content: stim, stimulus_type: 'nontarget' }); }
+  const test_stimuli = jsPsych.randomization.shuffle(timeline_variables);
+
+  const fixation = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: '<div class="task-stimulus">+</div>',
+    choices: "NO_KEYS",
+    trial_duration: 750,
+    data: { task: 'fixation' }
+  };
+
+  const stimulus_trial = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: function(){
+      return `<div class="task-stimulus">${jsPsych.timelineVariable('stimulus_content')}</div>`;
+    },
+    choices: "NO_KEYS",
+    data: {
+      task: 'response',
+      stimulus: jsPsych.timelineVariable('stimulus_content'),
+      stimulus_type: jsPsych.timelineVariable('stimulus_type')
+    },
+    on_load: function() {
+      let timeout_id;
+      const start_time = performance.now();
+      const targetElement = document.querySelector('.jspsych-display-element');
+      const tapHandler = (e) => {
+        clearTimeout(timeout_id);
+        targetElement.removeEventListener('mousedown', tapHandler);
+        targetElement.removeEventListener('touchstart', tapHandler);
+        e.preventDefault();
+        e.stopPropagation();
+        const rt = Math.round(performance.now() - start_time);
+        jsPsych.finishTrial({ rt: rt, tapped: true });
+      };
+      timeout_id = setTimeout(() => {
+        targetElement.removeEventListener('mousedown', tapHandler);
+        targetElement.removeEventListener('touchstart', tapHandler);
+        jsPsych.finishTrial({ rt: null, tapped: false });
+      }, 500);
+      targetElement.addEventListener('mousedown', tapHandler);
+      targetElement.addEventListener('touchstart', tapHandler);
+    },
+    on_finish: function(data){
+      const responded = data.tapped;
+      if(data.stimulus_type === 'nontarget'){
+        data.correct = responded ? 1 : 0;
+      } else {
+        data.correct = responded ? 0 : 1;
+      }
+      delete data.tapped;
+    }
+  };
+
+  const procedure = {
+    timeline: [fixation, stimulus_trial],
+    timeline_variables: test_stimuli,
+  };
+  timeline.push(procedure);
+  
+  jsPsych.run(timeline);
+
+</script>
+</html>
