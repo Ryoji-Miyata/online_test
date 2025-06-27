@@ -53,24 +53,36 @@ async function startGoNoGo() {
     const blank_before_task = { type: jsPsychHtmlKeyboardResponse, stimulus: '', choices: "NO_KEYS", trial_duration: 500 };
     timeline.push(welcome, instructions, ready, start_task, blank_before_task);
 
-    // ★★★ この部分が修正点です ★★★
-    const num_total_trials = 50; // 総試行数を50に変更
-    const num_nogo_trials = 10;  // NoGo試行を10に変更 (50の20%)
-    
+    const num_total_trials = 50;
+    const num_nogo_trials = 10;
     const go_stimuli_options = [0, 1, 2, 4, 5, 6, 7, 8, 9];
     const nogo_stimulus = 3;
     let timeline_variables = [];
     for(let i = 0; i < num_nogo_trials; i++){ timeline_variables.push({ stimulus_content: nogo_stimulus, stimulus_type: 'target' }); }
-    // Go試行の数は (50 - 10 = 40) となるよう自動計算されます
     for(let i = 0; i < (num_total_trials - num_nogo_trials); i++){ const stim = jsPsych.randomization.sampleWithoutReplacement(go_stimuli_options, 1)[0]; timeline_variables.push({ stimulus_content: stim, stimulus_type: 'nontarget' }); }
     const test_stimuli = jsPsych.randomization.shuffle(timeline_variables);
 
     const fixation = { type: jsPsychHtmlKeyboardResponse, stimulus: '<div class="task-stimulus">+</div>', choices: "NO_KEYS", trial_duration: 750, data: { task: 'fixation' } };
+    
     const stimulus_trial = {
         type: jsPsychHtmlKeyboardResponse,
         stimulus: function(){ return `<div class="task-stimulus">${jsPsych.timelineVariable('stimulus_content')}</div>`; },
         choices: "NO_KEYS",
-        data: { task: 'response', stimulus: jsPsych.timelineVariable('stimulus_content'), stimulus_type: jsPsych.timelineVariable('stimulus_type') },
+        
+        // ★★★ この部分が修正点です ★★★
+        data: function(){
+            const stim_type = jsPsych.timelineVariable('stimulus_type');
+            // 'target'なら1, 'nontarget'なら0を'stimulus_type_value'に格納
+            const stim_type_value = (stim_type === 'target') ? 1 : 0;
+
+            return {
+                task: 'response',
+                stimulus: jsPsych.timelineVariable('stimulus_content'),
+                stimulus_type: stim_type,
+                stimulus_type_value: stim_type_value // 新しい列を追加
+            };
+        },
+        
         on_load: function() {
             let timeout_id;
             const start_time = performance.now();
@@ -93,6 +105,7 @@ async function startGoNoGo() {
         },
         on_finish: function(data){
             const responded = data.tapped;
+            // 正誤判定ロジックはstimulus_typeを使って判定
             if(data.stimulus_type === 'nontarget'){ data.correct = responded ? 1 : 0; } else { data.correct = responded ? 0 : 1; }
             delete data.tapped;
         }

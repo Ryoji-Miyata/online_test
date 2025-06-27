@@ -149,30 +149,41 @@ async function loadStimuliData() {
 
 // ★★★ この関数が修正のメインです ★★★
 function createTimelineVariables(stimuliData) {
-    // 1. 試行回数の設定
-    const TOTAL_TRIALS = 43; // ウォームアップ3回 + 本試行40回
+    const TOTAL_TRIALS = 43;
     const WARMUP_TRIALS = 3; 
 
     let timeline_vars = [];
     let lastStimulusNumber = null;
 
-    // 2. 本試行の条件リストを作成 (Switch 20回, Repeat 20回)
+    // --- ここからがランダム化の修正部分 ---
+
+    // 1. 確実に動作するシャッフル関数を定義
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    // 2. 本試行の条件リストを作成
     let main_trialtypes = Array(20).fill('switch').concat(Array(20).fill('repeat'));
-    jsPsych.randomization.shuffle(main_trialtypes);
+    
+    // 3. 作成したシャッフル関数でリストをランダム化
+    const shuffled_main_trialtypes = shuffleArray(main_trialtypes);
 
-    // 3. 全体の試行リストを作成 (ウォームアップ3回 + 本試行40回)
-    let trialtypes = Array(WARMUP_TRIALS).fill('warmup').concat(main_trialtypes);
+    // 4. 全体の試行リストを作成 (ウォームアップ3回 + シャッフル済みの本試行40回)
+    let trialtypes = Array(WARMUP_TRIALS).fill('warmup').concat(shuffled_main_trialtypes);
 
-    // 4. 全43試行の刺激を生成
+    // --- ここまでがランダム化の修正部分 ---
+
     for (let i = 0; i < TOTAL_TRIALS; i++) {
         const trial_type = trialtypes[i];
         let selectedStimulus;
 
-        // ウォームアップ試行 (最初の3回)
         if (i < WARMUP_TRIALS) {
             selectedStimulus = jsPsych.randomization.sampleWithoutReplacement(stimuliData, 1)[0];
         } 
-        // 本試行 (4回目以降)
         else {
             const isLastStimLocal = ['1', '2', '3', '4'].includes(lastStimulusNumber);
             let possibleStimuli = [];
@@ -184,13 +195,10 @@ function createTimelineVariables(stimuliData) {
                 const targetGroup = isLastStimLocal ? ['1','2','3','4'] : ['5','6','7','8'];
                 possibleStimuli = stimuliData.filter(s => targetGroup.includes(s.stimulus_number_mixed));
             }
-            // 候補がない場合は全体からランダムに選ぶ（安全策）
             selectedStimulus = jsPsych.randomization.sampleWithoutReplacement(possibleStimuli, 1)[0] || jsPsych.randomization.sampleWithoutReplacement(stimuliData, 1)[0];
         }
         
         lastStimulusNumber = selectedStimulus.stimulus_number_mixed;
-        
-        // データ記録用のラベル
         let trial_type_value = (trial_type === 'repeat') ? 0 : (trial_type === 'switch' ? 1 : 'warmup');
 
         timeline_vars.push({
