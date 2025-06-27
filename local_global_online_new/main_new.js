@@ -209,4 +209,5 @@ function createTimelineVariables(stimuliData) {
     return timeline_vars;
 }
 
+// ★★★ この一行が抜けていました ★★★
 startExperiment();
