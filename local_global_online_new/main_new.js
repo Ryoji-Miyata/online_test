@@ -45,7 +45,6 @@ async function startExperiment() {
     };
     timeline.push(preload);
 
-    // ★★★ この部分が修正点です ★★★
     const welcome = { 
         type: jsPsychHtmlButtonResponse, 
         stimulus: `<div class='main-text'><h1 style="font-size: 7vw;"><span style="white-space: nowrap;">Local-Globalへ</span><br>ようこそ</h1></div>`, 
@@ -148,39 +147,63 @@ async function loadStimuliData() {
     } catch (error) { console.error('CSVファイルの読み込みに失敗しました:', error); return null; }
 }
 
+// ★★★ この関数が修正のメインです ★★★
 function createTimelineVariables(stimuliData) {
-    const TOTAL_TRIALS = 32;
+    // 1. 試行回数の設定
+    const TOTAL_TRIALS = 43; // ウォームアップ3回 + 本試行40回
+    const WARMUP_TRIALS = 3; 
+
     let timeline_vars = [];
     let lastStimulusNumber = null;
-    let trialtypes = Array(15).fill('switch').concat(Array(15).fill('repeat'));
-    jsPsych.randomization.shuffle(trialtypes);
-    trialtypes.unshift('none', 'none');
+
+    // 2. 本試行の条件リストを作成 (Switch 20回, Repeat 20回)
+    let main_trialtypes = Array(20).fill('switch').concat(Array(20).fill('repeat'));
+    jsPsych.randomization.shuffle(main_trialtypes);
+
+    // 3. 全体の試行リストを作成 (ウォームアップ3回 + 本試行40回)
+    let trialtypes = Array(WARMUP_TRIALS).fill('warmup').concat(main_trialtypes);
+
+    // 4. 全43試行の刺激を生成
     for (let i = 0; i < TOTAL_TRIALS; i++) {
         const trial_type = trialtypes[i];
         let selectedStimulus;
-        if (i < 2) {
+
+        // ウォームアップ試行 (最初の3回)
+        if (i < WARMUP_TRIALS) {
             selectedStimulus = jsPsych.randomization.sampleWithoutReplacement(stimuliData, 1)[0];
-        } else {
+        } 
+        // 本試行 (4回目以降)
+        else {
             const isLastStimLocal = ['1', '2', '3', '4'].includes(lastStimulusNumber);
             let possibleStimuli = [];
+
             if (trial_type === "switch") {
                 const targetGroup = isLastStimLocal ? ['5','6','7','8'] : ['1','2','3','4'];
                 possibleStimuli = stimuliData.filter(s => targetGroup.includes(s.stimulus_number_mixed));
-            } else {
+            } else { // 'repeat'
                 const targetGroup = isLastStimLocal ? ['1','2','3','4'] : ['5','6','7','8'];
                 possibleStimuli = stimuliData.filter(s => targetGroup.includes(s.stimulus_number_mixed));
             }
+            // 候補がない場合は全体からランダムに選ぶ（安全策）
             selectedStimulus = jsPsych.randomization.sampleWithoutReplacement(possibleStimuli, 1)[0] || jsPsych.randomization.sampleWithoutReplacement(stimuliData, 1)[0];
         }
+        
         lastStimulusNumber = selectedStimulus.stimulus_number_mixed;
-        let trial_type_value = (trial_type === 'repeat') ? 0 : (trial_type === 'switch' ? 1 : 'none');
+        
+        // データ記録用のラベル
+        let trial_type_value = (trial_type === 'repeat') ? 0 : (trial_type === 'switch' ? 1 : 'warmup');
+
         timeline_vars.push({
             file_path_mixed: selectedStimulus.file_path_mixed,
             data: {
                 task: 'response',
-                trial_type: trial_type, trial_type_value: trial_type_value, stimulus_path: selectedStimulus.file_path_mixed,
-                stimulus_mixed: selectedStimulus.stimulus_mixed, cogruity: selectedStimulus.cogruity,
-                correct_answer: selectedStimulus.correct_answer_mixed, stimulus_number: selectedStimulus.stimulus_number_mixed
+                trial_type: trial_type, 
+                trial_type_value: trial_type_value, 
+                stimulus_path: selectedStimulus.file_path_mixed,
+                stimulus_mixed: selectedStimulus.stimulus_mixed, 
+                cogruity: selectedStimulus.cogruity,
+                correct_answer: selectedStimulus.correct_answer_mixed, 
+                stimulus_number: selectedStimulus.stimulus_number_mixed
             }
         });
     }

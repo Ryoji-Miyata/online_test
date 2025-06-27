@@ -36,8 +36,6 @@ async function startGoNoGo() {
     });
 
     const timeline = [];
-    
-    // ★★★ 修正点 1/2: 「ようこそ」画面の文字サイズを調整 ★★★
     const welcome = { 
         type: jsPsychHtmlButtonResponse, 
         stimulus: `<h1 style="font-size: 8vw;">ようこそgo_nogoタスクへ</h1>`, 
@@ -45,8 +43,6 @@ async function startGoNoGo() {
         button_html: '<button class="jspsych-btn instruction-button">%choice%</button>'
     };
     const instructions = { type: jsPsychHtmlButtonResponse, stimulus: `<div style="text-align: left; max-width: 90%; margin: auto; line-height: 1.6;"><p>画面中央に数字が表示されたら、<br>できるだけ素早く<strong>画面のどこか</strong>をタップしてください。</p><p style="margin-top: 30px;">ただし、<b style="color: red; font-size: 1.2em;">「３」</b>が表示されたとき<strong style="color: red;">だけ</strong>は、<br>タップしないでください。</p></div>`, choices: ['理解しました'], button_html: '<button class="jspsych-btn instruction-button">%choice%</button>'};
-    
-    // ★★★ 修正点 2/2: 「準備」画面の文字サイズを調整 ★★★
     const ready = { 
         type: jsPsychHtmlButtonResponse, 
         stimulus: `<h1 style="font-size: 8vw;">準備はよろしいですか？</h1>`, 
@@ -57,12 +53,15 @@ async function startGoNoGo() {
     const blank_before_task = { type: jsPsychHtmlKeyboardResponse, stimulus: '', choices: "NO_KEYS", trial_duration: 500 };
     timeline.push(welcome, instructions, ready, start_task, blank_before_task);
 
-    const num_total_trials = 30;
-    const num_nogo_trials = 6;
+    // ★★★ この部分が修正点です ★★★
+    const num_total_trials = 50; // 総試行数を50に変更
+    const num_nogo_trials = 10;  // NoGo試行を10に変更 (50の20%)
+    
     const go_stimuli_options = [0, 1, 2, 4, 5, 6, 7, 8, 9];
     const nogo_stimulus = 3;
     let timeline_variables = [];
     for(let i = 0; i < num_nogo_trials; i++){ timeline_variables.push({ stimulus_content: nogo_stimulus, stimulus_type: 'target' }); }
+    // Go試行の数は (50 - 10 = 40) となるよう自動計算されます
     for(let i = 0; i < (num_total_trials - num_nogo_trials); i++){ const stim = jsPsych.randomization.sampleWithoutReplacement(go_stimuli_options, 1)[0]; timeline_variables.push({ stimulus_content: stim, stimulus_type: 'nontarget' }); }
     const test_stimuli = jsPsych.randomization.shuffle(timeline_variables);
 
