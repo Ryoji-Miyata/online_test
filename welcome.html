@@ -12,7 +12,7 @@
         .slide { display: none; }
         .slide.active { display: block; }
         input[type="text"], select { width: 100%; padding: 12px; margin-bottom: 20px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
-        input[type="text"] { ime-mode: inactive; inputmode: "numeric"; } /* 入力モードを数字に */
+        input[type="text"] { ime-mode: inactive; inputmode: "numeric"; }
         button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 6px; font-size: 18px; cursor: pointer; transition: background-color 0.3s; }
         button:hover { background-color: #0056b3; }
         .loader { border: 4px solid #f3f3f3; border-radius: 50%; border-top: 4px solid #3498db; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
@@ -60,16 +60,12 @@
     form1.addEventListener('submit', function(event) {
         event.preventDefault(); 
         const experimentId = experimentIdInput.value.trim();
-        
-        // ★★★ 修正点 2/3: 半角数字のみを許可する正規表現に変更 ★★★
         const validationRegex = /^\d+$/;
-
         if (validationRegex.test(experimentId)) {
             sessionStorage.setItem('experimentId', experimentId);
             slide1.classList.remove('active');
             slide2.classList.add('active');
         } else {
-            // ★★★ 修正点 3/3: エラーメッセージを修正 ★★★
             alert('実験IDは半角数字のみで入力してください。');
         }
     });
@@ -87,32 +83,35 @@
         }
     });
 
+    // ★★★ この関数が修正点です ★★★
     function prepareAndStartTasks() {
         const date = new Date();
         const timestamp = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}_${date.getHours().toString().padStart(2, '0')}-${date.getMinutes().toString().padStart(2, '0')}`;
         sessionStorage.setItem('experimentTimestamp', timestamp);
         
-        const tasks = [
+        // 1. タスクを「固定」と「ランダム化対象」に分ける
+        const fixedFirstTask = 'feelings_questionnaire_online/mood_question_connected.html';
+        const cognitiveTasks = [
             'go_nogo_online/go_nogo_online_connected.html',
-            'local_global_online_new/index_new.html',
-            'feelings_questionnaire_online/mood_question_connected.html'
+            'local_global_online_new/index_new.html'
         ];
 
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
-        }
+        // 2. 認知課題（2つ）の順序だけをランダム化する
+        const shuffledCognitiveTasks = Math.random() < 0.5 ? 
+            [cognitiveTasks[0], cognitiveTasks[1]] : 
+            [cognitiveTasks[1], cognitiveTasks[0]];
 
-        const shuffledTasks = shuffleArray(tasks);
+        // 3. 固定タスクとランダム化した認知課題を結合して最終的な順序を作成
+        const finalTaskOrder = [fixedFirstTask, ...shuffledCognitiveTasks];
 
-        sessionStorage.setItem('taskOrder', JSON.stringify(shuffledTasks));
+        // 4. 作成したタスク順序を保存して実験開始
+        sessionStorage.setItem('taskOrder', JSON.stringify(finalTaskOrder));
         sessionStorage.setItem('currentTaskIndex', '0');
 
+        console.log('最終的なタスク順序:', finalTaskOrder);
+
         setTimeout(() => {
-            window.location.href = shuffledTasks[0];
+            window.location.href = finalTaskOrder[0];
         }, 2000);
     }
 </script>
