@@ -35,8 +35,13 @@
             <form id="form2">
                 <select id="sessionNumber" required>
                     <option value="" disabled selected>選択してください</option>
-                    <option value="1">1回目</option><option value="2">2回目</option><option value="3">3回目</option>
-                    <option value="4">4回目</option><option value="5">5回目</option><option value="6">6回目</option>
+                    <option value="1">1回目</option>
+                    <option value="2">2回目</option>
+                    <option value="3">3回目</option>
+                    <option value="4">4回目</option>
+                    <option value="5">5回目</option>
+                    <option value="6">6回目</option>
+                    <option value="7">7回目</option>
                 </select>
                 <button type="submit">実験を開始する</button>
             </form>
@@ -83,28 +88,23 @@
         }
     });
 
-    // ★★★ この関数が修正点です ★★★
     function prepareAndStartTasks() {
         const date = new Date();
         const timestamp = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}_${date.getHours().toString().padStart(2, '0')}-${date.getMinutes().toString().padStart(2, '0')}`;
         sessionStorage.setItem('experimentTimestamp', timestamp);
         
-        // 1. タスクを「固定」と「ランダム化対象」に分ける
         const fixedFirstTask = 'feelings_questionnaire_online/mood_question_connected.html';
         const cognitiveTasks = [
             'go_nogo_online/go_nogo_online_connected.html',
             'local_global_online_new/index_new.html'
         ];
 
-        // 2. 認知課題（2つ）の順序だけをランダム化する
         const shuffledCognitiveTasks = Math.random() < 0.5 ? 
             [cognitiveTasks[0], cognitiveTasks[1]] : 
             [cognitiveTasks[1], cognitiveTasks[0]];
 
-        // 3. 固定タスクとランダム化した認知課題を結合して最終的な順序を作成
         const finalTaskOrder = [fixedFirstTask, ...shuffledCognitiveTasks];
 
-        // 4. 作成したタスク順序を保存して実験開始
         sessionStorage.setItem('taskOrder', JSON.stringify(finalTaskOrder));
         sessionStorage.setItem('currentTaskIndex', '0');
 
