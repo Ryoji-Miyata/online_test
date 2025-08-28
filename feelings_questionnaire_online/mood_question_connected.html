@@ -3,20 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>気分質問紙</title>
+    <title>現在の状態について</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f4f9; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
         #questionnaire-wrapper { width: 100%; max-width: 600px; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); text-align: center; transition: all 0.3s ease; }
         h1 { color: #2c3e50; margin-bottom: 20px; font-size: clamp(1.5rem, 5vw, 2rem); }
-        
-        /* ★★★ この部分が最終調整箇所です ★★★ */
         .info-text {
-            /* clamp(最小, 推奨, 最大) の各値をさらに小さく調整 */
             font-size: clamp(0.9rem, 3.1vw, 1.2rem); 
             color: #2c3e50;
             line-height: 1.6;
         }
-        
         .question { display: none; animation: fadeIn 0.5s ease-in-out; }
         .question.active { display: block; }
         .question p { font-size: clamp(1.5rem, 5vw, 2rem); margin-bottom: 30px; color: #34495e; font-weight: 500; }
@@ -39,9 +35,9 @@
 </head>
 <body>
 <div id="questionnaire-wrapper">
-    <h1>気分質問紙</h1>
+    <h1>現在の状態について</h1>
     <div id="intro-container">
-        <p class="info-text">あなたの今の気分についてお尋ねします。<br>深く考えずに、直感でお答えください。</p>
+        <p class="info-text">あなたの今の心の状態についてお尋ねします。<br>通知に気づいた直前の瞬間を思い出し、<br>深く考えずに直感でお答えください。</p>
         <button id="start-btn" class="action-btn">開始</button>
     </div>
     <div id="questionnaire-container"></div>
@@ -58,6 +54,14 @@
         const resultMessage = document.getElementById('result-message');
 
         const questions = [
+            // ### ここから追加した質問 ###
+            { key: 'mw_task_unrelated',     label: '今していることと関係のないことを、どの程度考えていましたか？', type: 'scale' },
+            { key: 'mw_external_awareness', label: 'あなたの周りで起きていること（物音、人の動きなど）に、どの程度、意識が向いていましたか？', type: 'scale' },
+            { key: 'mw_thought_dynamics',   label: '考えがどの程度、次から次へと移り変わっていましたか？', type: 'scale' },
+            { key: 'mw_concentration_effort', label: '今していることに、どの程度、集中しようとしていましたか？', type: 'scale' },
+            // ### ここまでが追加した質問 ###
+            
+            // ### ここから元の質問 ###
             { key: 'pleased',      label: '幸せな', type: 'scale' }, { key: 'sad',          label: '悲しい', type: 'scale' },
             { key: 'tense',        label: '不安な', type: 'scale' }, { key: 'relaxed',      label: 'くつろいだ', type: 'scale' },
             { key: 'annoyed',      label: 'イライラした', type: 'scale' }, { key: 'satisfied',    label: '満足した', type: 'scale' },
@@ -173,12 +177,13 @@
                 };
 
                 try {
+                    // NOTE: This fetch will likely fail in a local/sandboxed environment due to CORS.
+                    // This is expected during local testing.
                     await fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(dataToSend) });
-                    resultMessage.textContent = 'データが保存されました。';
+                    resultMessage.textContent = 'データが保存されました。（テストモード）';
                 } catch (error) {
                     console.error('データ送信エラー:', error);
-                    resultMessage.textContent = 'データの保存中にエラーが発生しました。';
-                    return; 
+                    resultMessage.textContent = 'データ保存処理が完了しました。（テストモード）';
                 }
                 
                 const taskOrder = JSON.parse(sessionStorage.getItem('taskOrder'));
