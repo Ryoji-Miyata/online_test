@@ -8,11 +8,7 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f4f9; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
         #questionnaire-wrapper { width: 100%; max-width: 600px; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); text-align: center; transition: all 0.3s ease; }
         h1 { color: #2c3e50; margin-bottom: 20px; font-size: clamp(1.5rem, 5vw, 2rem); }
-        .info-text {
-            font-size: clamp(0.9rem, 3.1vw, 1.2rem); 
-            color: #2c3e50;
-            line-height: 1.6;
-        }
+        .info-text { font-size: clamp(0.9rem, 3.1vw, 1.2rem); color: #2c3e50; line-height: 1.6; }
         .question { display: none; animation: fadeIn 0.5s ease-in-out; }
         .question.active { display: block; }
         .question p { font-size: clamp(1.5rem, 5vw, 2rem); margin-bottom: 30px; color: #34495e; font-weight: 500; }
@@ -23,9 +19,10 @@
         .confirm-btn { background-color: #3498db; color: #fff; border: none; padding: 12px 25px; font-size: 1.1em; border-radius: 8px; cursor: pointer; transition: background-color 0.2s, opacity 0.2s; margin-top: 20px; font-weight: bold; }
         .confirm-btn:hover { background-color: #2980b9; }
         .confirm-btn:disabled { background-color: #bdc3c7; cursor: not-allowed; opacity: 0.7; }
-        .options-binary { display: flex; justify-content: center; gap: 20px; margin-top: 20px; }
-        .binary-btn { border: 2px solid #3498db; background-color: #fff; color: #3498db; padding: 15px; font-size: 1.1em; cursor: pointer; border-radius: 8px; transition: all 0.2s ease-in-out; min-width: 120px; }
-        .binary-btn:hover { background-color: #3498db; color: #fff; transform: translateY(-2px); }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .option-btn { border: 2px solid #3498db; background-color: #fff; color: #3498db; padding: 15px; font-size: 1.1em; cursor: pointer; border-radius: 8px; transition: all 0.2s ease-in-out; }
+        .option-btn.full-width { grid-column: 1 / -1; }
+        .option-btn:hover { background-color: #3498db; color: #fff; transform: translateY(-2px); }
         #intro-container, #questionnaire-container, #result-container { display: none; }
         #intro-container.active, #questionnaire-container.active, #result-container.active { display: block; animation: fadeIn 0.5s; }
         .action-btn { background-color: #2ecc71; color: #fff; border: none; padding: 15px 30px; font-size: 1.2em; border-radius: 8px; cursor: pointer; transition: background-color 0.2s; margin-top: 20px; font-weight: bold; }
@@ -54,14 +51,10 @@
         const resultMessage = document.getElementById('result-message');
 
         const questions = [
-            // ### ここから追加した質問 ###
             { key: 'mw_task_unrelated',     label: '今していることと関係のないことを、どの程度考えていましたか？', type: 'scale' },
             { key: 'mw_external_awareness', label: 'あなたの周りで起きていること（物音、人の動きなど）に、どの程度、意識が向いていましたか？', type: 'scale' },
             { key: 'mw_thought_dynamics',   label: '考えがどの程度、次から次へと移り変わっていましたか？', type: 'scale' },
             { key: 'mw_concentration_effort', label: '今していることに、どの程度、集中しようとしていましたか？', type: 'scale' },
-            // ### ここまでが追加した質問 ###
-            
-            // ### ここから元の質問 ###
             { key: 'pleased',      label: '幸せな', type: 'scale' }, { key: 'sad',          label: '悲しい', type: 'scale' },
             { key: 'tense',        label: '不安な', type: 'scale' }, { key: 'relaxed',      label: 'くつろいだ', type: 'scale' },
             { key: 'annoyed',      label: 'イライラした', type: 'scale' }, { key: 'satisfied',    label: '満足した', type: 'scale' },
@@ -70,7 +63,16 @@
             { key: 'excited',      label: '興奮した', type: 'scale' }, { key: 'depressed',    label: '落ち込んだ', type: 'scale' },
             { key: 'gloomy',       label: '憂鬱な', type: 'scale' }, { key: 'tired',        label: '疲れた', type: 'scale' },
             { key: 'sleepy',       label: '眠気', type: 'scale' }, { key: 'stressed',     label: '心理的ストレス', type: 'scale' },
-            { key: 'new_stressor', label: '前回の質問から新たなストレッサーはありましたか？', type: 'binary', options: ['はい', 'いいえ'] }
+            { key: 'new_stressor', label: '前回の質問から新たなストレッサーはありましたか？', type: 'options', options: [{text: 'はい', value: 1}, {text: 'いいえ', value: 0}] },
+            { key: 'stressor_timing', label: 'その出来事が起きたのは、いつ頃でしょうか？', type: 'options', condition: { key: 'new_stressor', value: 1 }, 
+              options: [
+                  {text: '10分以内', value: 1}, 
+                  {text: '30分以内', value: 2}, 
+                  {text: '1時間以内', value: 3}, 
+                  {text: '2時間以内', value: 4},
+                  {text: '2時間以上前', value: 5}
+              ] 
+            }
         ];
 
         let currentQuestionIndex = 0;
@@ -89,51 +91,39 @@
             const questionText = document.createElement('p');
             questionText.textContent = questionData.label;
             questionDiv.appendChild(questionText);
+
             if (questionData.type === 'scale') {
                 const container = document.createElement('div');
                 container.className = 'slider-container';
                 const labelsDiv = document.createElement('div');
                 labelsDiv.className = 'slider-labels';
-                const leftLabel = document.createElement('span');
-                leftLabel.textContent = '全く';
-                const valueDisplay = document.createElement('span');
-                valueDisplay.className = 'slider-value-display';
-                valueDisplay.textContent = '5';
-                const rightLabel = document.createElement('span');
-                rightLabel.textContent = '非常に';
-                labelsDiv.appendChild(leftLabel);
-                labelsDiv.appendChild(valueDisplay);
-                labelsDiv.appendChild(rightLabel);
+                const leftLabel = document.createElement('span'); leftLabel.textContent = '全く';
+                const valueDisplay = document.createElement('span'); valueDisplay.className = 'slider-value-display'; valueDisplay.textContent = '5';
+                const rightLabel = document.createElement('span'); rightLabel.textContent = '非常に';
+                labelsDiv.appendChild(leftLabel); labelsDiv.appendChild(valueDisplay); labelsDiv.appendChild(rightLabel);
                 container.appendChild(labelsDiv);
                 const slider = document.createElement('input');
-                slider.type = 'range';
-                slider.min = 0;
-                slider.max = 10;
-                slider.value = 5;
-                slider.step = 1;
+                slider.type = 'range'; slider.min = 0; slider.max = 10; slider.value = 5; slider.step = 1;
                 container.appendChild(slider);
                 const confirmBtn = document.createElement('button');
-                confirmBtn.textContent = '決定';
-                confirmBtn.className = 'confirm-btn';
-                confirmBtn.disabled = true;
-                slider.oninput = () => {
-                    valueDisplay.textContent = slider.value;
-                    confirmBtn.disabled = false; 
-                };
+                confirmBtn.textContent = '決定'; confirmBtn.className = 'confirm-btn'; confirmBtn.disabled = true;
+                slider.oninput = () => { valueDisplay.textContent = slider.value; confirmBtn.disabled = false; };
                 confirmBtn.onclick = () => selectAnswer(questionData.key, slider.value);
                 container.appendChild(confirmBtn);
                 questionDiv.appendChild(container);
-            } else if (questionData.type === 'binary') {
+            } else if (questionData.type === 'options') {
                 const optionsDiv = document.createElement('div');
-                optionsDiv.className = 'options-binary';
-                questionData.options.forEach(optionText => {
+                optionsDiv.className = 'options-grid';
+                questionData.options.forEach(option => {
                     const btn = document.createElement('button');
-                    btn.className = 'binary-btn';
-                    btn.textContent = optionText;
-                    const answerValue = optionText === 'はい' ? 1 : 0;
-                    btn.onclick = () => selectAnswer(questionData.key, answerValue);
+                    btn.className = 'option-btn';
+                    btn.textContent = option.text;
+                    btn.onclick = () => selectAnswer(questionData.key, option.value);
                     optionsDiv.appendChild(btn);
                 });
+                if (questionData.options.length % 2 !== 0) {
+                   optionsDiv.lastChild.classList.add('full-width');
+                }
                 questionDiv.appendChild(optionsDiv);
             }
             return questionDiv;
@@ -145,14 +135,29 @@
         }
 
         function showNextQuestion() {
-            const currentQuestion = document.getElementById(`q-${currentQuestionIndex}`);
-            if (currentQuestion) { currentQuestion.classList.remove('active'); }
+            const currentQuestionEl = document.getElementById(`q-${currentQuestionIndex}`);
+            if (currentQuestionEl) { currentQuestionEl.classList.remove('active'); }
+            
             currentQuestionIndex++;
-            if (currentQuestionIndex < questions.length) {
-                document.getElementById(`q-${currentQuestionIndex}`).classList.add('active');
-            } else {
+            
+            if (currentQuestionIndex >= questions.length) {
                 showFinalScreen();
+                return;
             }
+
+            const nextQuestionData = questions[currentQuestionIndex];
+            
+            if (nextQuestionData.condition) {
+                const conditionKey = nextQuestionData.condition.key;
+                const conditionValue = nextQuestionData.condition.value;
+                if (answers[conditionKey] !== conditionValue) {
+                    showNextQuestion(); 
+                    return;
+                }
+            }
+            
+            const nextQuestionEl = document.getElementById(`q-${currentQuestionIndex}`);
+            if(nextQuestionEl) nextQuestionEl.classList.add('active');
         }
         
         function showFinalScreen() {
@@ -177,13 +182,12 @@
                 };
 
                 try {
-                    // NOTE: This fetch will likely fail in a local/sandboxed environment due to CORS.
-                    // This is expected during local testing.
                     await fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(dataToSend) });
-                    resultMessage.textContent = 'データが保存されました。（テストモード）';
+                    resultMessage.textContent = 'データが保存されました。';
                 } catch (error) {
                     console.error('データ送信エラー:', error);
-                    resultMessage.textContent = 'データ保存処理が完了しました。（テストモード）';
+                    resultMessage.textContent = 'データの保存中にエラーが発生しました。';
+                    return; 
                 }
                 
                 const taskOrder = JSON.parse(sessionStorage.getItem('taskOrder'));
@@ -221,3 +225,4 @@
 </script>
 </body>
 </html>
+
